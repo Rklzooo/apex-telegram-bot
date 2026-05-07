@@ -7,27 +7,72 @@ app = Flask(__name__)
 # TELEGRAM SETTINGS
 # ─────────────────────────────────────────────
 
-TOKEN = "8673450567:AAGg0WZTqIHvcBX1Lj4JlnUnselcI7cT2EY"
+TOKEN = "DIN_BOT_TOKEN"
 CHAT_ID = "-5074757104"
+
+BASE_URL = f"https://api.telegram.org/bot{TOKEN}"
 
 # ─────────────────────────────────────────────
 # SEND MESSAGE TO TELEGRAM
 # ─────────────────────────────────────────────
 
-def send_telegram(message):
-
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+def send_telegram(message, chat_id=CHAT_ID):
 
     payload = {
-        "chat_id": CHAT_ID,
+        "chat_id": chat_id,
         "text": message,
         "parse_mode": "HTML"
     }
 
-    requests.post(url, json=payload)
+    requests.post(
+        f"{BASE_URL}/sendMessage",
+        json=payload
+    )
 
 # ─────────────────────────────────────────────
-# WEBHOOK ENDPOINT
+# TELEGRAM WEBHOOK
+# ─────────────────────────────────────────────
+
+@app.route(f"/{TOKEN}", methods=["POST"])
+def telegram_webhook():
+
+    data = request.json
+
+    print("TELEGRAM UPDATE:", data)
+
+    if "message" in data:
+
+        chat_id = data["message"]["chat"]["id"]
+        text = data["message"].get("text", "")
+
+        # ==============================
+        # /test COMMAND
+        # ==============================
+
+        if text == "/test":
+
+            send_telegram(
+                "✅ Apex bot fungerar korrekt 🚀",
+                chat_id
+            )
+
+        # ==============================
+        # /id COMMAND
+        # ==============================
+
+        elif text == "/id":
+
+            send_telegram(
+                f"🆔 Gruppens Chat ID:\n<code>{chat_id}</code>",
+                chat_id
+            )
+
+    return {
+        "ok": True
+    }
+
+# ─────────────────────────────────────────────
+# TRADINGVIEW WEBHOOK
 # ─────────────────────────────────────────────
 
 @app.route('/webhook', methods=['POST'])
@@ -35,37 +80,7 @@ def webhook():
 
     data = request.json
 
-    print(data)
-
-    # ===================================
-    # TELEGRAM COMMANDS
-    # ===================================
-
-    if "message" in data:
-
-        chat_id = data["message"]["chat"]["id"]
-        text = data["message"].get("text", "")
-
-        # TEST COMMAND
-        if text == "/test":
-
-            url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-
-            payload = {
-                "chat_id": chat_id,
-                "text": "✅ Apex bot fungerar korrekt 🚀",
-                "parse_mode": "HTML"
-            }
-
-            requests.post(url, json=payload)
-
-            return {
-                "status": "test sent"
-            }
-
-    # ===================================
-    # TRADING SIGNALS
-    # ===================================
+    print("TRADINGVIEW DATA:", data)
 
     signal = data.get("signal", "N/A")
     instrument = data.get("instrument", "N/A")
@@ -77,9 +92,11 @@ def webhook():
     tf = data.get("tf", "N/A")
 
     # LONG / SHORT ICON
+
     emoji = "🟢" if signal == "LONG" else "🔴"
 
-    # TELEGRAM DESIGN
+    # TELEGRAM MESSAGE
+
     message = f"""
 🚨 <b>APEX SIGNAL BOT</b>
 
@@ -120,6 +137,14 @@ def webhook():
     return {
         "status": "success"
     }
+
+# ─────────────────────────────────────────────
+# HOME ROUTE
+# ─────────────────────────────────────────────
+
+@app.route("/")
+def home():
+    return "APEX BOT ONLINE"
 
 # ─────────────────────────────────────────────
 # START SERVER
