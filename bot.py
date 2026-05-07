@@ -35,6 +35,38 @@ def webhook():
 
     data = request.json
 
+    print(data)
+
+    # ===================================
+    # TELEGRAM COMMANDS
+    # ===================================
+
+    if "message" in data:
+
+        chat_id = data["message"]["chat"]["id"]
+        text = data["message"].get("text", "")
+
+        # TEST COMMAND
+        if text == "/test":
+
+            url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+
+            payload = {
+                "chat_id": chat_id,
+                "text": "✅ Apex bot fungerar korrekt 🚀",
+                "parse_mode": "HTML"
+            }
+
+            requests.post(url, json=payload)
+
+            return {
+                "status": "test sent"
+            }
+
+    # ===================================
+    # TRADING SIGNALS
+    # ===================================
+
     signal = data.get("signal", "N/A")
     instrument = data.get("instrument", "N/A")
     score = data.get("score", "N/A")
